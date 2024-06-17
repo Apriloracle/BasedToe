@@ -7,18 +7,18 @@ const WalletFuncs = () => {
 
   // get wallet address
   const activeAccount = useActiveAccount();
-  console.log("wallet address", activeAccount);
+  // console.log("wallet address", activeAccount);
 
   // get balance
   const wallet = useActiveWallet();
-  console.log(wallet)
+  // console.log(wallet)
 
   return (
     <div>
       {wallet ? (
         <>
           <div>Connected Wallet Address: {activeAccount?.address}</div>
-          <div>Wallet Connected {wallet.id}</div>
+          {/* <div>Wallet Connected {wallet.id}</div> */}
         </>
       ) : (
         <div>No wallet connected</div>
