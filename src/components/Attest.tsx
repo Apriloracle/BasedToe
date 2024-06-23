@@ -17,9 +17,21 @@ const Attest = () => {
 
     // Get Private Key
     const privateKey = process.env.NEXT_PUBLIC_TEMPLATE_PRIVATE_KEY;
+    const rpcUrl_base = process.env.NEXT_PUBLIC_RPC_URL
+    const EASContractAddress = process.env.NEXT_PUBLIC_EASContractAddress_Base;
+    const schemaUID = process.env.NEXT_PUBLIC_schemaUID
 
     if (!privateKey) {
         throw new Error('PRIVATE_KEY is not defined in the environment variables');
+    }
+    if(!rpcUrl_base){
+        throw new Error('RPC_URL is not defined in the environment variables');
+    }
+    if(!EASContractAddress){
+        throw new Error('EAS ContractAddress on Base is not defined in the environment variables');
+    }
+    if(!schemaUID){
+        throw new Error('Schema UID is not defined in the environment variables');
     }
 
     // if (!chain_) {
@@ -28,15 +40,12 @@ const Attest = () => {
 
 
     // Initialize EAS and provider
-    const EASContractAddress = "0xC2679fBD37d54388Ce493F1DB75320D236e1815e"; // Sepolia v0.26
+    // const EASContractAddress = ; 
     const eas = new EAS(EASContractAddress);
-    const provider = new ethers.JsonRpcProvider('https://sepolia.infura.io/v3/17342b0f3f344d2d96c2c89c5fddc959');
+    const provider = new ethers.JsonRpcProvider(rpcUrl_base);
     const wallet = new ethers.Wallet(privateKey, provider);
     eas.connect(wallet);
 
-    // Attestation UID and Schema UID
-    // const uid = "0xff08bbf3d3e6e0992fc70ab9b9370416be59e87897c3d42b20549901d2cccc3e";
-    const schemaUID = "0xe9ca46090d23675266e2032928e99f6dfc1dd95fa3fb6b60d3bea168d66ab471";
 
     // get wallet address
     const activeAccount = useActiveAccount();
@@ -61,18 +70,6 @@ const Attest = () => {
         { name: "transactionhash", value: "", type: "string" },
         { name: "chainid", value: chain_, type: "string" },
     ]);
-
-
-
-    // const schemaEncoder = new SchemaEncoder("string Source,address user_id,string timestamp,string transactionhash,string chainid");
-
-    // const encodedData = schemaEncoder.encodeData([
-    //     { name: "Source", value: "", type: "string" },
-    //     { name: "user_id", value: '0x0000000000000000000000000000000000000000', type: "address" },
-    //     { name: "timestamp", value: nowTime, type: "string" },
-    //     { name: "transactionhash", value: "", type: "string" },
-    //     { name: "chainid", value: chain_, type: "string" }
-    // ]);
 
 
     // Function to fetch attestation

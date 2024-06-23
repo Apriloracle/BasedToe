@@ -2,8 +2,7 @@
 import { client } from '@/app/client';
 import React from 'react'
 import { defineChain } from 'thirdweb';
-import { createAuth } from 'thirdweb/auth';
-import { baseSepolia } from 'thirdweb/chains';
+import { baseSepolia, base } from 'thirdweb/chains';
 import { ConnectButton } from "thirdweb/react";
 import { createWallet, walletConnect, inAppWallet } from 'thirdweb/wallets';
 
@@ -25,7 +24,7 @@ const Navbar = () => {
                     <ConnectButton
                         client={client}
                         wallets={wallets}
-                        chain={defineChain(baseSepolia)}
+                        chain={defineChain(base)}
                         connectButton={{
                             label: "Login"
                         }}
