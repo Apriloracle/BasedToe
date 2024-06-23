@@ -24,13 +24,13 @@ const Attest = () => {
     if (!privateKey) {
         throw new Error('PRIVATE_KEY is not defined in the environment variables');
     }
-    if(!rpcUrl_base){
+    if (!rpcUrl_base) {
         throw new Error('RPC_URL is not defined in the environment variables');
     }
-    if(!EASContractAddress){
+    if (!EASContractAddress) {
         throw new Error('EAS ContractAddress on Base is not defined in the environment variables');
     }
-    if(!schemaUID){
+    if (!schemaUID) {
         throw new Error('Schema UID is not defined in the environment variables');
     }
 
@@ -46,13 +46,15 @@ const Attest = () => {
     const wallet = new ethers.Wallet(privateKey, provider);
     eas.connect(wallet);
 
+    console.log(eas)
+
 
     // get wallet address
     const activeAccount = useActiveAccount();
     console.log("wallet address", activeAccount?.address);
-    const currentAddress = activeAccount?.address || '0x98586a788f437c678d64704e170CdBDCA2B6B36b';
+    const currentAddress = activeAccount?.address || '0x0000000000000000000000000000000000000000';
 
-    const chain_: string = chain?.id.toString() || ''
+    const chain_: string = chain?.id.toString() || '8453'
 
     const nowTime: string = new Date().toISOString();
     console.log(nowTime)
@@ -62,6 +64,8 @@ const Attest = () => {
 
     // Encode data using SchemaEncoder
     // Initialize SchemaEncoder with the schema string
+
+
     const schemaEncoder = new SchemaEncoder("string Source,address user_id,string timestamp,string transactionhash,string chainid");
     const encodedData = schemaEncoder.encodeData([
         { name: "Source", value: "", type: "string" },
