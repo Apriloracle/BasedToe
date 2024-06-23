@@ -52,7 +52,7 @@ const Attest = () => {
     console.log("wallet address", activeAccount?.address);
     const currentAddress = activeAccount?.address || '0x98586a788f437c678d64704e170CdBDCA2B6B36b';
 
-    const chain_: string = chain?.id.toString() || '11155111'
+    const chain_: string = chain?.id.toString() || ''
 
     const nowTime: string = new Date().toISOString();
     console.log(nowTime)
