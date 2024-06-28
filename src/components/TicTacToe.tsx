@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 
-const TicTacToe = () => {
-  const [board, setBoard] = useState(Array(9).fill(null));
-  const [xIsNext, setXIsNext] = useState(true);
+type Square = 'X' | 'O' | null;
 
-  const calculateWinner = (squares) => {
+const TicTacToe: React.FC = () => {
+  const [board, setBoard] = useState<Square[]>(Array(9).fill(null));
+  const [xIsNext, setXIsNext] = useState<boolean>(true);
+
+  const calculateWinner = (squares: Square[]): Square => {
     const lines = [
       [0, 1, 2],
       [3, 4, 5],
@@ -26,16 +28,16 @@ const TicTacToe = () => {
     return null;
   };
 
-  const handleClick = (i) => {
-    const newBoard = board.slice();
+  const handleClick = (i: number): void => {
+    const newBoard = [...board];
     if (calculateWinner(newBoard) || newBoard[i]) return;
     newBoard[i] = xIsNext ? 'X' : 'O';
     setBoard(newBoard);
     setXIsNext(!xIsNext);
   };
 
-  const renderSquare = (i) => (
-    <button className="w-12 h-12 border border-gray-400 text-xl font-bold" onClick={() => handleClick(i)}>
+  const renderSquare = (i: number) => (
+    <button key={i} className="w-12 h-12 border border-gray-400 text-xl font-bold" onClick={() => handleClick(i)}>
       {board[i]}
     </button>
   );
@@ -51,7 +53,7 @@ const TicTacToe = () => {
     <div className="flex flex-col items-center">
       <div className="text-xl font-bold mb-4">{status}</div>
       <div className="grid grid-cols-3 gap-1">
-        {[...Array(9)].map((_, i) => renderSquare(i))}
+        {board.map((_, i) => renderSquare(i))}
       </div>
     </div>
   );
