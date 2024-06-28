@@ -52,14 +52,20 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
         schema: schemaUID,
         data: {
           recipient: currentAddress,
-          expirationTime: BigInt(0), // Changed from 0 to BigInt(0)
+          expirationTime: BigInt(0),
           revocable: true,
           data: encodedData,
         },
       });
 
-      const newAttestation = await tx.wait();
-      setLastAttestation(newAttestation.uid);
+      const receipt = await tx.wait();
+      console.log("Transaction receipt:", receipt);
+      
+      // Assuming the UID is part of the transaction hash or logs
+      // You may need to adjust this based on the actual structure of the receipt
+      const attestationUID = receipt.transactionHash;
+      setLastAttestation(attestationUID);
+      
       onMove(index, player);
     } catch (error) {
       console.error("Error creating attestation:", error);
@@ -73,7 +79,7 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
     <div className="mt-4 p-4 bg-gray-800 rounded-lg">
       <h3 className="text-lg font-semibold mb-2">Game Attestations</h3>
       {isAttesting && <p className="text-yellow-400">Creating attestation...</p>}
-      {lastAttestation && <p className="text-green-400">Last attestation UID: {lastAttestation}</p>}
+      {lastAttestation && <p className="text-green-400">Last attestation transaction hash: {lastAttestation}</p>}
       <button 
         className="mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
         onClick={() => createAttestation(0, 'X')}
