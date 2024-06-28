@@ -5,6 +5,13 @@ import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from 'ethers';
 import { useActiveAccount } from "thirdweb/react";
 
+// Add this type declaration at the top of your file
+declare global {
+  interface Window {
+    ethereum?: ethers.Eip1193Provider;
+  }
+}
+
 interface GameAttestationsProps {
   onMove: (index: number, player: 'X' | 'O') => void;
 }
@@ -26,6 +33,10 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
   const createAttestation = async (index: number, player: 'X' | 'O') => {
     setIsAttesting(true);
     try {
+      if (!window.ethereum) {
+        throw new Error("No Ethereum wallet found. Please install MetaMask or another Web3 wallet.");
+      }
+
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const eas = new EAS(EASContractAddress);
@@ -53,16 +64,24 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
       onMove(index, player);
     } catch (error) {
       console.error("Error creating attestation:", error);
+      alert(`Failed to create attestation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsAttesting(false);
     }
   };
 
   return (
-    <div>
-      <h3>Game Attestations</h3>
-      {isAttesting && <p>Creating attestation...</p>}
-      {lastAttestation && <p>Last attestation UID: {lastAttestation}</p>}
+    <div className="mt-4 p-4 bg-gray-800 rounded-lg">
+      <h3 className="text-lg font-semibold mb-2">Game Attestations</h3>
+      {isAttesting && <p className="text-yellow-400">Creating attestation...</p>}
+      {lastAttestation && <p className="text-green-400">Last attestation UID: {lastAttestation}</p>}
+      <button 
+        className="mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        onClick={() => createAttestation(0, 'X')} // This is just an example, you'd typically call this from the game logic
+        disabled={isAttesting}
+      >
+        Create Test Attestation
+      </button>
     </div>
   );
 };
