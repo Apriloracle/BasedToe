@@ -5,7 +5,6 @@ import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from 'ethers';
 import { useActiveAccount } from "thirdweb/react";
 
-// Add this type declaration at the top of your file
 declare global {
   interface Window {
     ethereum?: ethers.Eip1193Provider;
@@ -53,7 +52,7 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
         schema: schemaUID,
         data: {
           recipient: currentAddress,
-          expirationTime: 0,
+          expirationTime: BigInt(0), // Changed from 0 to BigInt(0)
           revocable: true,
           data: encodedData,
         },
@@ -77,7 +76,7 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
       {lastAttestation && <p className="text-green-400">Last attestation UID: {lastAttestation}</p>}
       <button 
         className="mt-2 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-        onClick={() => createAttestation(0, 'X')} // This is just an example, you'd typically call this from the game logic
+        onClick={() => createAttestation(0, 'X')}
         disabled={isAttesting}
       >
         Create Test Attestation
