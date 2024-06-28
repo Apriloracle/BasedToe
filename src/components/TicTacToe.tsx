@@ -10,6 +10,7 @@ const TicTacToe: React.FC = () => {
   const [xIsNext, setXIsNext] = useState<boolean>(true);
   const [winner, setWinner] = useState<Square>(null);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
+  const [isAttesting, setIsAttesting] = useState<boolean>(false);
 
   const calculateWinner = useCallback((squares: Square[]): Square => {
     const lines = [
@@ -32,26 +33,37 @@ const TicTacToe: React.FC = () => {
   }, []);
 
   const handleMove = useCallback((index: number) => {
-    if (board[index] || winner) return;
+    if (board[index] || winner || isAttesting) return;
 
-    const newBoard = [...board];
-    newBoard[index] = xIsNext ? 'X' : 'O';
-    setBoard(newBoard);
+    setIsAttesting(true);
+    const player = xIsNext ? 'X' : 'O';
     
-    const newWinner = calculateWinner(newBoard);
-    if (newWinner) {
-      setWinner(newWinner);
-      setIsGameOver(true);
-    } else if (newBoard.every(Boolean)) {
-      setIsGameOver(true);
-    } else {
-      setXIsNext(!xIsNext);
-    }
-  }, [board, xIsNext, winner, calculateWinner]);
+    // This will be called by GameAttestations after successful attestation
+    const completeMove = () => {
+      const newBoard = [...board];
+      newBoard[index] = player;
+      setBoard(newBoard);
+      
+      const newWinner = calculateWinner(newBoard);
+      if (newWinner) {
+        setWinner(newWinner);
+        setIsGameOver(true);
+      } else if (newBoard.every(Boolean)) {
+        setIsGameOver(true);
+      } else {
+        setXIsNext(!xIsNext);
+      }
+      setIsAttesting(false);
+    };
 
-  const handleAttestationMove = useCallback((index: number, player: 'X' | 'O') => {
-    handleMove(index);
-  }, [handleMove]);
+    // Attempt to create an attestation
+    if (typeof window !== 'undefined' && window.ethereum) {
+      return completeMove();
+    } else {
+      alert("No Ethereum wallet found. Please install MetaMask or another Web3 wallet.");
+      setIsAttesting(false);
+    }
+  }, [board, xIsNext, winner, calculateWinner, isAttesting]);
 
   const resetGame = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -65,7 +77,7 @@ const TicTacToe: React.FC = () => {
       key={index} 
       className="w-16 h-16 border border-gray-400 text-2xl font-bold bg-gray-800 hover:bg-gray-700 transition-colors"
       onClick={() => handleMove(index)}
-      disabled={!!board[index] || isGameOver}
+      disabled={!!board[index] || isGameOver || isAttesting}
     >
       {board[index]}
     </button>
@@ -90,7 +102,7 @@ const TicTacToe: React.FC = () => {
       >
         Reset Game
       </button>
-      <GameAttestations onMove={handleAttestationMove} />
+      <GameAttestations onMove={handleMove} />
     </div>
   );
 };
