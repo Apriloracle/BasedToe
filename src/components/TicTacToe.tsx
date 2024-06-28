@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import GameAttestations from './GameAttestations';
 
 type Square = 'X' | 'O' | null;
@@ -10,7 +10,7 @@ const TicTacToe: React.FC = () => {
   const [xIsNext, setXIsNext] = useState<boolean>(true);
   const [winner, setWinner] = useState<Square>(null);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const gameAttestationsRef = useRef<{ createAttestation: (index: number, player: 'X' | 'O') => Promise<void> } | null>(null);
+  const [createAttestation, setCreateAttestation] = useState<((index: number, player: 'X' | 'O') => Promise<void>) | null>(null);
 
   const calculateWinner = useCallback((squares: Square[]): Square => {
     const lines = [
@@ -39,7 +39,9 @@ const TicTacToe: React.FC = () => {
     const currentPlayer = xIsNext ? 'X' : 'O';
     newBoard[index] = currentPlayer;
 
-    gameAttestationsRef.current?.createAttestation(index, currentPlayer);
+    if (createAttestation) {
+      createAttestation(index, currentPlayer);
+    }
 
     setBoard(newBoard);
     
@@ -52,7 +54,7 @@ const TicTacToe: React.FC = () => {
     } else {
       setXIsNext(!xIsNext);
     }
-  }, [board, xIsNext, winner, isGameOver, calculateWinner]);
+  }, [board, xIsNext, winner, isGameOver, calculateWinner, createAttestation]);
 
   const resetGame = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -91,7 +93,7 @@ const TicTacToe: React.FC = () => {
       >
         Reset Game
       </button>
-      <GameAttestations onMove={handleMove} ref={gameAttestationsRef} />
+      <GameAttestations onMove={handleMove} setCreateAttestation={setCreateAttestation} />
     </div>
   );
 };
