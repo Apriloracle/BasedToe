@@ -1,101 +1,82 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import GameAttestations from './GameAttestations';
+import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
+import { ethers } from 'ethers';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useActiveAccount } from "thirdweb/react";
 
-type Square = 'X' | 'O' | null;
+interface GameAttestationsProps {
+  setCreateAttestation: React.Dispatch<React.SetStateAction<((index: number, player: 'X' | 'O') => Promise<void>) | null>>;
+}
 
-const TicTacToe: React.FC = () => {
-  const [board, setBoard] = useState<Square[]>(Array(9).fill(null));
-  const [xIsNext, setXIsNext] = useState<boolean>(true);
-  const [winner, setWinner] = useState<Square>(null);
-  const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [createAttestation, setCreateAttestation] = useState<((index: number, player: 'X' | 'O') => Promise<void>) | null>(null);
+const GameAttestations: React.FC<GameAttestationsProps> = ({ setCreateAttestation }) => {
+    const [attestation, setAttestation] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [isAttesting, setIsAttesting] = useState<boolean>(false);
 
-  const calculateWinner = useCallback((squares: Square[]): Square => {
-    const lines = [
-      [0, 1, 2],
-      [3, 4, 5],
-      [6, 7, 8],
-      [0, 3, 6],
-      [1, 4, 7],
-      [2, 5, 8],
-      [0, 4, 8],
-      [2, 4, 6],
-    ];
-    for (let i = 0; i < lines.length; i++) {
-      const [a, b, c] = lines[i];
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return squares[a];
-      }
-    }
-    return null;
-  }, []);
+    const activeAccount = useActiveAccount();
+    const currentAddress = activeAccount?.address || '0x0000000000000000000000000000000000000000';
 
-  const handleMove = useCallback((index: number) => {
-    if (board[index] || winner || isGameOver) return;
+    // Get environment variables
+    const privateKey = process.env.NEXT_PUBLIC_TEMPLATE_PRIVATE_KEY;
+    const rpcUrl_base = process.env.NEXT_PUBLIC_RPC_URL;
+    const EASContractAddress = process.env.NEXT_PUBLIC_EASContractAddress_Base;
+    const schemaUID = process.env.NEXT_PUBLIC_schemaUID;
 
-    const newBoard = [...board];
-    const currentPlayer = xIsNext ? 'X' : 'O';
-    newBoard[index] = currentPlayer;
-
-    if (createAttestation) {
-      createAttestation(index, currentPlayer);
+    if (!privateKey || !rpcUrl_base || !EASContractAddress || !schemaUID) {
+        throw new Error('One or more required environment variables are not defined');
     }
 
-    setBoard(newBoard);
-    
-    const newWinner = calculateWinner(newBoard);
-    if (newWinner) {
-      setWinner(newWinner);
-      setIsGameOver(true);
-    } else if (newBoard.every(Boolean)) {
-      setIsGameOver(true);
-    } else {
-      setXIsNext(!xIsNext);
-    }
-  }, [board, xIsNext, winner, isGameOver, calculateWinner, createAttestation]);
+    // Initialize EAS and provider
+    const eas = new EAS(EASContractAddress);
+    const provider = new ethers.JsonRpcProvider(rpcUrl_base);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    eas.connect(wallet);
 
-  const resetGame = useCallback(() => {
-    setBoard(Array(9).fill(null));
-    setXIsNext(true);
-    setWinner(null);
-    setIsGameOver(false);
-  }, []);
+    const createAttestation = useCallback(async (index: number, player: 'X' | 'O') => {
+        setIsAttesting(true);
+        setError(null);
+        try {
+            const schemaEncoder = new SchemaEncoder("uint256 moveIndex, string player, address player_address");
+            const encodedData = schemaEncoder.encodeData([
+                { name: "moveIndex", value: index, type: "uint256" },
+                { name: "player", value: player, type: "string" },
+                { name: "player_address", value: currentAddress, type: "address" },
+            ]);
 
-  const renderSquare = (index: number) => (
-    <button 
-      key={index} 
-      className="w-16 h-16 border border-gray-400 text-2xl font-bold bg-gray-800 hover:bg-gray-700 transition-colors"
-      onClick={() => handleMove(index)}
-      disabled={!!board[index] || isGameOver}
-    >
-      {board[index]}
-    </button>
-  );
+            const tx = await eas.attest({
+                schema: schemaUID,
+                data: {
+                    recipient: currentAddress,
+                    expirationTime: BigInt(0),
+                    revocable: true,
+                    data: encodedData,
+                },
+            });
 
-  const status = winner
-    ? `Winner: ${winner}`
-    : isGameOver
-    ? 'Draw!'
-    : `Next player: ${xIsNext ? 'X' : 'O'}`;
+            const newAttestation = await tx.wait();
+            console.log("New attestation:", newAttestation);
+            setAttestation(newAttestation);
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message);
+        } finally {
+            setIsAttesting(false);
+        }
+    }, [eas, schemaUID, currentAddress]);
 
-  return (
-    <div className="flex flex-col items-center bg-gray-900 p-6 rounded-lg shadow-lg">
-      <h2 className="text-2xl font-bold mb-4 text-white">Tic Tac Toe</h2>
-      <div className="text-xl font-bold mb-4 text-green-400">{status}</div>
-      <div className="grid grid-cols-3 gap-2 mb-4">
-        {board.map((_, index) => renderSquare(index))}
-      </div>
-      <button 
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors mb-4"
-        onClick={resetGame}
-      >
-        Reset Game
-      </button>
-      <GameAttestations onMove={handleMove} setCreateAttestation={setCreateAttestation} />
-    </div>
-  );
+    useEffect(() => {
+        setCreateAttestation(() => createAttestation);
+    }, [createAttestation, setCreateAttestation]);
+
+    return (
+        <div className="mt-4 p-4 bg-gray-800 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">Game Attestations</h3>
+            {isAttesting && <p className="text-yellow-400">Creating attestation...</p>}
+            {attestation && <p className="text-green-400">Attestation created: {attestation.uid}</p>}
+            {error && <p className="text-red-400">Error: {error}</p>}
+        </div>
+    );
 };
 
-export default TicTacToe;
+export default GameAttestations;
