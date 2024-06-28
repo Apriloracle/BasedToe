@@ -28,21 +28,28 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ setCreateAttestatio
     }
 
     // Initialize EAS and provider
-    const eas = new EAS(EASContractAddress);
     const provider = new ethers.JsonRpcProvider(rpcUrl_base);
     const wallet = new ethers.Wallet(privateKey, provider);
+    const eas = new EAS(EASContractAddress);
     eas.connect(wallet);
 
     const createAttestation = useCallback(async (index: number, player: 'X' | 'O') => {
         setIsAttesting(true);
         setError(null);
         try {
+            console.log("Creating attestation for move:", index, player);
+            console.log("Current address:", currentAddress);
+            console.log("EAS Contract Address:", EASContractAddress);
+            console.log("Schema UID:", schemaUID);
+
             const schemaEncoder = new SchemaEncoder("uint256 moveIndex, string player, address player_address");
             const encodedData = schemaEncoder.encodeData([
                 { name: "moveIndex", value: index, type: "uint256" },
                 { name: "player", value: player, type: "string" },
                 { name: "player_address", value: currentAddress, type: "address" },
             ]);
+
+            console.log("Encoded data:", encodedData);
 
             const tx = await eas.attest({
                 schema: schemaUID,
@@ -54,16 +61,24 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ setCreateAttestatio
                 },
             });
 
+            console.log("Transaction sent:", tx);
+
             const newAttestation = await tx.wait();
             console.log("New attestation:", newAttestation);
             setAttestation(newAttestation);
         } catch (err: any) {
-            console.error(err);
-            setError(err.message);
+            console.error("Detailed error:", err);
+            setError(err.message || "An unknown error occurred");
+            if (err.data) {
+                console.error("Error data:", err.data);
+            }
+            if (err.transaction) {
+                console.error("Error transaction:", err.transaction);
+            }
         } finally {
             setIsAttesting(false);
         }
-    }, [eas, schemaUID, currentAddress]);
+    }, [eas, schemaUID, currentAddress, EASContractAddress]);
 
     useEffect(() => {
         setCreateAttestation(() => createAttestation);
@@ -73,8 +88,13 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ setCreateAttestatio
         <div className="mt-4 p-4 bg-gray-800 rounded-lg">
             <h3 className="text-lg font-semibold mb-2">Game Attestations</h3>
             {isAttesting && <p className="text-yellow-400">Creating attestation...</p>}
-            {attestation && <p className="text-green-400">Attestation created: {attestation.uid}</p>}
-            {error && <p className="text-red-400">Error: {error}</p>}
+            {attestation && <p className="text-green-400">Attestation created: {attestation.uid || JSON.stringify(attestation)}</p>}
+            {error && (
+                <div className="text-red-400">
+                    <p>Error: {error}</p>
+                    <p>Please check the console for more details.</p>
+                </div>
+            )}
         </div>
     );
 };
