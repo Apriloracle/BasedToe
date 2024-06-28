@@ -58,13 +58,10 @@ const GameAttestations: React.FC<GameAttestationsProps> = ({ onMove }) => {
         },
       });
 
-      const receipt = await tx.wait();
-      console.log("Transaction receipt:", receipt);
+      const txHash = await tx.wait();
+      console.log("Transaction hash:", txHash);
       
-      // Assuming the UID is part of the transaction hash or logs
-      // You may need to adjust this based on the actual structure of the receipt
-      const attestationUID = receipt.transactionHash;
-      setLastAttestation(attestationUID);
+      setLastAttestation(txHash);
       
       onMove(index, player);
     } catch (error) {
