@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import GameAttestations from './GameAttestations';
 
 type Square = 'X' | 'O' | null;
@@ -10,7 +10,7 @@ const TicTacToe: React.FC = () => {
   const [xIsNext, setXIsNext] = useState<boolean>(true);
   const [winner, setWinner] = useState<Square>(null);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
-  const [isAttesting, setIsAttesting] = useState<boolean>(false);
+  const gameAttestationsRef = useRef<{ createAttestation: (index: number, player: 'X' | 'O') => Promise<void> } | null>(null);
 
   const calculateWinner = useCallback((squares: Square[]): Square => {
     const lines = [
@@ -33,37 +33,26 @@ const TicTacToe: React.FC = () => {
   }, []);
 
   const handleMove = useCallback((index: number) => {
-    if (board[index] || winner || isAttesting) return;
+    if (board[index] || winner || isGameOver) return;
 
-    setIsAttesting(true);
-    const player = xIsNext ? 'X' : 'O';
+    const newBoard = [...board];
+    const currentPlayer = xIsNext ? 'X' : 'O';
+    newBoard[index] = currentPlayer;
+
+    gameAttestationsRef.current?.createAttestation(index, currentPlayer);
+
+    setBoard(newBoard);
     
-    // This will be called by GameAttestations after successful attestation
-    const completeMove = () => {
-      const newBoard = [...board];
-      newBoard[index] = player;
-      setBoard(newBoard);
-      
-      const newWinner = calculateWinner(newBoard);
-      if (newWinner) {
-        setWinner(newWinner);
-        setIsGameOver(true);
-      } else if (newBoard.every(Boolean)) {
-        setIsGameOver(true);
-      } else {
-        setXIsNext(!xIsNext);
-      }
-      setIsAttesting(false);
-    };
-
-    // Attempt to create an attestation
-    if (typeof window !== 'undefined' && window.ethereum) {
-      return completeMove();
+    const newWinner = calculateWinner(newBoard);
+    if (newWinner) {
+      setWinner(newWinner);
+      setIsGameOver(true);
+    } else if (newBoard.every(Boolean)) {
+      setIsGameOver(true);
     } else {
-      alert("No Ethereum wallet found. Please install MetaMask or another Web3 wallet.");
-      setIsAttesting(false);
+      setXIsNext(!xIsNext);
     }
-  }, [board, xIsNext, winner, calculateWinner, isAttesting]);
+  }, [board, xIsNext, winner, isGameOver, calculateWinner]);
 
   const resetGame = useCallback(() => {
     setBoard(Array(9).fill(null));
@@ -77,7 +66,7 @@ const TicTacToe: React.FC = () => {
       key={index} 
       className="w-16 h-16 border border-gray-400 text-2xl font-bold bg-gray-800 hover:bg-gray-700 transition-colors"
       onClick={() => handleMove(index)}
-      disabled={!!board[index] || isGameOver || isAttesting}
+      disabled={!!board[index] || isGameOver}
     >
       {board[index]}
     </button>
@@ -102,7 +91,7 @@ const TicTacToe: React.FC = () => {
       >
         Reset Game
       </button>
-      <GameAttestations onMove={handleMove} />
+      <GameAttestations onMove={handleMove} ref={gameAttestationsRef} />
     </div>
   );
 };
