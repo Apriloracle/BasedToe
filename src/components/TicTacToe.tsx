@@ -11,6 +11,7 @@ const TicTacToe: React.FC = () => {
   const [winner, setWinner] = useState<Square>(null);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [createAttestation, setCreateAttestation] = useState<((index: number, player: 'X' | 'O') => Promise<void>) | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const calculateWinner = useCallback((squares: Square[]): Square => {
     const lines = [
@@ -39,8 +40,15 @@ const TicTacToe: React.FC = () => {
     const currentPlayer = xIsNext ? 'X' : 'O';
     newBoard[index] = currentPlayer;
 
+    setError(null); // Clear any previous errors
+
     if (createAttestation) {
-      await createAttestation(index, currentPlayer);
+      try {
+        await createAttestation(index, currentPlayer);
+      } catch (err) {
+        console.error("Error creating attestation:", err);
+        setError("Failed to create attestation. The move was recorded, but not attested on the blockchain.");
+      }
     }
 
     setBoard(newBoard);
@@ -61,6 +69,7 @@ const TicTacToe: React.FC = () => {
     setXIsNext(true);
     setWinner(null);
     setIsGameOver(false);
+    setError(null);
   }, []);
 
   const renderSquare = (index: number) => (
@@ -93,6 +102,12 @@ const TicTacToe: React.FC = () => {
       >
         Reset Game
       </button>
+      {error && (
+        <div className="text-red-400 mb-4 p-2 bg-red-100 border border-red-400 rounded">
+          <p>{error}</p>
+          <p className="text-sm mt-1">Check the console for more details.</p>
+        </div>
+      )}
       <GameAttestations setCreateAttestation={setCreateAttestation} />
     </div>
   );
