@@ -32,7 +32,7 @@ const TicTacToe: React.FC = () => {
     return null;
   }, []);
 
-  const handleMove = useCallback((index: number) => {
+  const handleMove = useCallback(async (index: number) => {
     if (board[index] || winner || isGameOver) return;
 
     const newBoard = [...board];
@@ -40,7 +40,7 @@ const TicTacToe: React.FC = () => {
     newBoard[index] = currentPlayer;
 
     if (createAttestation) {
-      createAttestation(index, currentPlayer);
+      await createAttestation(index, currentPlayer);
     }
 
     setBoard(newBoard);
@@ -93,7 +93,7 @@ const TicTacToe: React.FC = () => {
       >
         Reset Game
       </button>
-      <GameAttestations onMove={handleMove} setCreateAttestation={setCreateAttestation} />
+      <GameAttestations setCreateAttestation={setCreateAttestation} />
     </div>
   );
 };
