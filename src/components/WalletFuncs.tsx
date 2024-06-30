@@ -21,7 +21,7 @@ const WalletFuncs = () => {
           {/* <div>Wallet Connected {wallet.id}</div> */}
         </>
       ) : (
-        <div>No wallet connected</div>
+        <div></div>
       )}
     </div>
   )
