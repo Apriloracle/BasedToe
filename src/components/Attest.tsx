@@ -128,64 +128,7 @@ const Attest = () => {
 
     return (
         <div>
-            {
-                !activeAccount ? <div>Wallet Not connected</div> :
-                    <>
-                        {
-                            !currentAddress ? <div>Connect Wallet</div> : <div className="flex my-2 flex-col space-y-8">
-
-                                <input
-                                    className="py-2 px-2 rounded-md text-black"
-                                    placeholder="Enter UID"
-                                    value={uid}
-                                    onChange={(e) => setUid(e.target.value)}
-                                />
-
-
-                                <button onClick={gettingAttestation} className="bg-[#EEEEF0] py-4 px-8 text-black rounded-lg">Get Attestation</button>
-                                <div >
-                                    {attestation && (
-                                        <div className="flex py-2 flex-col">
-                                            <p>Attestation UID: <span className="px-2 text-orange-300 underline">{attestation[0]}</span></p>
-                                            <p>Schema : <span className="px-2 text-orange-300 underline">{attestation[1]}</span></p>
-                                            <p>Attestation FROM : <span className="px-2 text-orange-300 underline">{attestation[7]}</span></p>
-                                            <p>Attestation TO : <span className="px-2 text-orange-300 underline">{attestation[6]}</span></p>
-                                        </div>
-                                    )}
-                                    {error && (
-                                        <div>
-                                            <p>Error: {error}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={creatingAttestation} className="bg-[#EEEEF0] py-4 px-8 text-black rounded-lg">Create Attestation</button>
-                                <div>
-                                    {tx && tx.receipt && (
-                                        <div className="flex py-2 flex-col">
-                                            <p>Receipt: <span className="px-2 text-orange-300 underline">{receipt_}</span></p>
-                                        </div>
-                                    )}
-                                    {error && (
-                                        <div>
-                                            <p>Error: {error}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Modal or Loading Indicator */}
-                                {isWaiting && (
-                                    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-                                        <div className="bg-white p-8 rounded-lg shadow-lg">
-                                            <p className="text-lg font-semibold mb-4 text-black">Processing...</p>
-                                            <div className="flex justify-center">
-                                                <div className="loader"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        }
-                    </>
-            }
+            
         </div>
     );
 };
