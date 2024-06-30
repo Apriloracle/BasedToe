@@ -129,57 +129,59 @@ const TicTacToe = () => {
     };
 
     if (!activeAccount) {
-        return <div>Wallet Not connected</div>;
+        return <div className="flex justify-center items-center h-screen">Wallet Not connected</div>;
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-            <h1 className="text-3xl font-bold mb-4">Tic-Tac-Toe with Blockchain Attestation</h1>
-            <p className="mb-4">Connected Address: {currentAddress}</p>
-            
-            <div className="grid grid-cols-3 gap-2 mb-4">
-                {board.map((square, i) => (
-                    <button 
-                        key={i} 
-                        onClick={() => handleClick(i)}
-                        className="w-20 h-20 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
-                        disabled={square !== null || gameOver || isWaiting}
-                    >
-                        {square}
-                    </button>
-                ))}
-            </div>
-            
-            <div className="mb-4">
-                <p>
-                    {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : `Next player: ${xIsNext ? 'X' : 'O'}`}
-                </p>
-            </div>
-
-            <button 
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                onClick={resetGame} 
-                disabled={isWaiting}
-            >
-                Reset Game
-            </button>
-
-            {error && (
-                <div className="mt-4 text-red-500">
-                    <p>Error: {error}</p>
+        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            <div className="text-center">
+                <h1 className="text-3xl font-bold mb-4">Tic-Tac-Toe with Blockchain Attestation</h1>
+                <p className="mb-4">Connected Address: {currentAddress}</p>
+                
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    {board.map((square, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => handleClick(i)}
+                            className="w-20 h-20 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
+                            disabled={square !== null || gameOver || isWaiting}
+                        >
+                            {square}
+                        </button>
+                    ))}
                 </div>
-            )}
+                
+                <div className="mb-4">
+                    <p>
+                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : `Next player: ${xIsNext ? 'X' : 'O'}`}
+                    </p>
+                </div>
 
-            {isWaiting && (
-                <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-                    <div className="bg-white p-8 rounded-lg shadow-lg">
-                        <p className="text-lg font-semibold mb-4 text-black">Processing move...</p>
-                        <div className="loader"></div>
+                <button 
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    onClick={resetGame} 
+                    disabled={isWaiting}
+                >
+                    Reset Game
+                </button>
+
+                {error && (
+                    <div className="mt-4 text-red-500">
+                        <p>Error: {error}</p>
                     </div>
-                </div>
-            )}
+                )}
 
-            <GameAttestations onCreateAttestation={createAttestation} />
+                {isWaiting && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
+                        <div className="bg-white p-8 rounded-lg shadow-lg">
+                            <p className="text-lg font-semibold mb-4 text-black">Processing move...</p>
+                            <div className="loader"></div>
+                        </div>
+                    </div>
+                )}
+
+                <GameAttestations onCreateAttestation={createAttestation} />
+            </div>
         </div>
     );
 };
