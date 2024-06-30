@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 import GameAttestations from './GameAttestations';
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
@@ -7,7 +7,6 @@ import { ethers } from 'ethers';
 
 const TicTacToe = () => {
     const [board, setBoard] = useState(Array(9).fill(null));
-    const [xIsNext, setXIsNext] = useState(true);
     const [winner, setWinner] = useState<string | null>(null);
     const [gameOver, setGameOver] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -101,85 +100,112 @@ const TicTacToe = () => {
         }
     };
 
+    const computerMove = (currentBoard: Array<string | null>) => {
+        const availableMoves = currentBoard.reduce((acc: number[], cell, index) => 
+            cell === null ? [...acc, index] : acc, []);
+        
+        if (availableMoves.length === 0) return null;
+
+        const randomIndex = Math.floor(Math.random() * availableMoves.length);
+        return availableMoves[randomIndex];
+    };
+
     const handleClick = useCallback(async (i: number) => {
         if (winner || board[i] || gameOver || !currentAddress) return;
 
         const newBoard = [...board];
-        newBoard[i] = xIsNext ? 'X' : 'O';
+        newBoard[i] = 'X';
         setBoard(newBoard);
+        await createAttestation(i, 'X');
 
-        const nowWinner = calculateWinner(newBoard);
-        if (nowWinner) {
-            setWinner(nowWinner);
+        const playerWinner = calculateWinner(newBoard);
+        if (playerWinner) {
+            setWinner(playerWinner);
             setGameOver(true);
+            return;
         } else if (newBoard.every((square) => square !== null)) {
             setGameOver(true);
+            return;
         }
 
-        await createAttestation(i, xIsNext ? 'X' : 'O');
-        setXIsNext(!xIsNext);
-    }, [board, winner, gameOver, xIsNext, currentAddress]);
+        // Computer's turn
+        const computerMoveIndex = computerMove(newBoard);
+        if (computerMoveIndex !== null) {
+            newBoard[computerMoveIndex] = 'O';
+            setBoard(newBoard);
+            await createAttestation(computerMoveIndex, 'O');
+
+            const computerWinner = calculateWinner(newBoard);
+            if (computerWinner) {
+                setWinner(computerWinner);
+                setGameOver(true);
+            } else if (newBoard.every((square) => square !== null)) {
+                setGameOver(true);
+            }
+        }
+    }, [board, winner, gameOver, currentAddress]);
 
     const resetGame = () => {
         setBoard(Array(9).fill(null));
-        setXIsNext(true);
         setWinner(null);
         setGameOver(false);
         setError(null);
     };
 
     if (!activeAccount) {
-        return <div>Wallet Not connected</div>;
+        return <div className="flex justify-center items-center h-screen">Wallet Not connected</div>;
     }
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-            <h1 className="text-3xl font-bold mb-4"></h1>
-            <p className="mb-4">Address: {currentAddress}</p>
-            
-            <div className="grid grid-cols-3 gap-2 mb-4">
-                {board.map((square, i) => (
-                    <button 
-                        key={i} 
-                        onClick={() => handleClick(i)}
-                        className="w-20 h-20 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
-                        disabled={square !== null || gameOver || isWaiting}
-                    >
-                        {square}
-                    </button>
-                ))}
-            </div>
-            
-            <div className="mb-4">
-                <p>
-                    {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : `Next player: ${xIsNext ? 'X' : 'O'}`}
-                </p>
-            </div>
-
-            <button 
-                className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                onClick={resetGame} 
-                disabled={isWaiting}
-            >
-                Reset Game
-            </button>
-
-            {error && (
-                <div className="mt-4 text-red-500">
-                    <p>Error: {error}</p>
+        <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            <div className="text-center">
+                <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestations</h1>
+                <p className="mb-4">Connected Address: {currentAddress}</p>
+                
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    {board.map((square, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => handleClick(i)}
+                            className="w-20 h-20 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
+                            disabled={square !== null || gameOver || isWaiting}
+                        >
+                            {square}
+                        </button>
+                    ))}
                 </div>
-            )}
+                
+                <div className="mb-4">
+                    <p>
+                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : "Your turn (X)"}
+                    </p>
+                </div>
 
-            {isWaiting && (
-                <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
-                    <div className="bg-white p-8 rounded-lg shadow-lg">
-                        <p className="text-lg font-semibold mb-4 text-black">Processing move...</p>
-                        <div className="loader"></div>
+                <button 
+                    className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+                    onClick={resetGame} 
+                    disabled={isWaiting}
+                >
+                    Reset Game
+                </button>
+
+                {error && (
+                    <div className="mt-4 text-red-500">
+                        <p>Error: {error}</p>
                     </div>
-                </div>
-            )}
+                )}
 
-            <GameAttestations onCreateAttestation={createAttestation} />
+                {isWaiting && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-50">
+                        <div className="bg-white p-8 rounded-lg shadow-lg">
+                            <p className="text-lg font-semibold mb-4 text-black">Processing move...</p>
+                            <div className="loader"></div>
+                        </div>
+                    </div>
+                )}
+
+                <GameAttestations onCreateAttestation={createAttestation} />
+            </div>
         </div>
     );
 };
