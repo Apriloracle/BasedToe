@@ -6,7 +6,8 @@ import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from 'ethers';
 
 const TicTacToe = () => {
-    const [board, setBoard] = useState(Array(27).fill(null));
+    const [boards, setBoards] = useState([Array(9).fill(null), Array(9).fill(null), Array(9).fill(null)]);
+    const [currentBoard, setCurrentBoard] = useState(0);
     const [winner, setWinner] = useState<string | null>(null);
     const [gameOver, setGameOver] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -36,27 +37,15 @@ const TicTacToe = () => {
 
     const calculateWinner = (squares: Array<string | null>) => {
         const lines = [
-            // Horizontal lines (9)
-            [0,1,2], [3,4,5], [6,7,8],
-            [9,10,11], [12,13,14], [15,16,17],
-            [18,19,20], [21,22,23], [24,25,26],
-
-            // Vertical lines (9)
-            [0,3,6], [1,4,7], [2,5,8],
-            [9,12,15], [10,13,16], [11,14,17],
-            [18,21,24], [19,22,25], [20,23,26],
-
-            // Depth lines (9)
-            [0,9,18], [1,10,19], [2,11,20],
-            [3,12,21], [4,13,22], [5,14,23],
-            [6,15,24], [7,16,25], [8,17,26],
-
-            // Diagonals (10)
-            [0,4,8], [2,4,6], [18,22,26], [20,22,24],
-            [0,13,26], [2,13,24], [6,13,20], [8,13,18],
-            [0,12,24], [2,14,26]
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6],
         ];
-
         for (let i = 0; i < lines.length; i++) {
             const [a, b, c] = lines[i];
             if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
@@ -66,13 +55,14 @@ const TicTacToe = () => {
         return null;
     };
 
-    const createAttestation = async (index: number, player: 'X' | 'O') => {
+    const createAttestation = async (boardIndex: number, cellIndex: number, player: 'X' | 'O') => {
         try {
             setIsWaiting(true);
-            const schemaEncoder = new SchemaEncoder("uint256 moveIndex, string player, address player_address, string timestamp, string chainid");
+            const schemaEncoder = new SchemaEncoder("uint256 boardIndex, uint256 cellIndex, string player, address player_address, string timestamp, string chainid");
             const nowTime: string = new Date().toISOString();
             const encodedData = schemaEncoder.encodeData([
-                { name: "moveIndex", value: index, type: "uint256" },
+                { name: "boardIndex", value: boardIndex, type: "uint256" },
+                { name: "cellIndex", value: cellIndex, type: "uint256" },
                 { name: "player", value: player, type: "string" },
                 { name: "player_address", value: currentAddress, type: "address" },
                 { name: "timestamp", value: nowTime, type: "string" },
@@ -122,43 +112,44 @@ const TicTacToe = () => {
         return availableMoves[randomIndex];
     };
 
-    const handleClick = useCallback(async (i: number) => {
-        if (winner || board[i] || gameOver || !currentAddress) return;
+    const handleClick = useCallback(async (boardIndex: number, cellIndex: number) => {
+        if (winner || boards[boardIndex][cellIndex] || gameOver || !currentAddress || boardIndex !== currentBoard) return;
 
-        const newBoard = [...board];
-        newBoard[i] = 'X';
-        setBoard(newBoard);
-        await createAttestation(i, 'X');
+        const newBoards = boards.map((board, index) => 
+            index === boardIndex ? board.map((cell, idx) => idx === cellIndex ? 'X' : cell) : board
+        );
+        setBoards(newBoards);
+        await createAttestation(boardIndex, cellIndex, 'X');
 
-        const playerWinner = calculateWinner(newBoard);
-        if (playerWinner) {
-            setWinner(playerWinner);
-            setGameOver(true);
-            return;
-        } else if (newBoard.every((square) => square !== null)) {
+        const boardWinner = calculateWinner(newBoards[boardIndex]);
+        if (boardWinner) {
+            setWinner(boardWinner);
             setGameOver(true);
             return;
         }
 
         // Computer's turn
-        const computerMoveIndex = computerMove(newBoard);
+        const nextBoard = (boardIndex + 1) % 3;
+        setCurrentBoard(nextBoard);
+        const computerMoveIndex = computerMove(newBoards[nextBoard]);
         if (computerMoveIndex !== null) {
-            newBoard[computerMoveIndex] = 'O';
-            setBoard(newBoard);
-            await createAttestation(computerMoveIndex, 'O');
+            newBoards[nextBoard][computerMoveIndex] = 'O';
+            setBoards(newBoards);
+            await createAttestation(nextBoard, computerMoveIndex, 'O');
 
-            const computerWinner = calculateWinner(newBoard);
+            const computerWinner = calculateWinner(newBoards[nextBoard]);
             if (computerWinner) {
                 setWinner(computerWinner);
                 setGameOver(true);
-            } else if (newBoard.every((square) => square !== null)) {
-                setGameOver(true);
             }
         }
-    }, [board, winner, gameOver, currentAddress]);
+
+        setCurrentBoard((nextBoard + 1) % 3);
+    }, [boards, winner, gameOver, currentAddress, currentBoard]);
 
     const resetGame = () => {
-        setBoard(Array(27).fill(null));
+        setBoards([Array(9).fill(null), Array(9).fill(null), Array(9).fill(null)]);
+        setCurrentBoard(0);
         setWinner(null);
         setGameOver(false);
         setError(null);
@@ -168,29 +159,18 @@ const TicTacToe = () => {
         return <div className="flex justify-center items-center h-screen"></div>;
     }
 
-    const renderGrid = () => {
+    const renderBoard = (boardIndex: number) => {
         return (
-            <div className="grid grid-cols-1 gap-8">
-                {[0, 1, 2].map((level) => (
-                    <div key={level} className="grid grid-cols-3 gap-2">
-                        {[0, 1, 2].map((row) => (
-                            <div key={row} className="grid grid-cols-3 gap-2">
-                                {[0, 1, 2].map((col) => {
-                                    const index = level * 9 + row * 3 + col;
-                                    return (
-                                        <button
-                                            key={index}
-                                            onClick={() => handleClick(index)}
-                                            className="w-16 h-16 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
-                                            disabled={board[index] !== null || gameOver || isWaiting}
-                                        >
-                                            {board[index]}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>
+            <div key={boardIndex} className={`grid grid-cols-3 gap-2 mb-8 ${boardIndex === currentBoard ? 'border-4 border-blue-500' : ''}`}>
+                {boards[boardIndex].map((cell, cellIndex) => (
+                    <button
+                        key={cellIndex}
+                        onClick={() => handleClick(boardIndex, cellIndex)}
+                        className="w-16 h-16 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
+                        disabled={cell !== null || gameOver || isWaiting || boardIndex !== currentBoard}
+                    >
+                        {cell}
+                    </button>
                 ))}
             </div>
         );
@@ -199,14 +179,16 @@ const TicTacToe = () => {
     return (
         <div className="flex justify-center items-center min-h-screen bg-gray-100">
             <div className="text-center">
-                <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestation</h1>
+                <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestations</h1>
                 <p className="mb-4">Connected Address: {currentAddress}</p>
                 
-                {renderGrid()}
+                <div className="flex flex-col items-center">
+                    {[0, 1, 2].map(boardIndex => renderBoard(boardIndex))}
+                </div>
                 
                 <div className="mb-4 mt-4">
                     <p>
-                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : "Your turn (X)"}
+                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : `Your turn (X) on Board ${currentBoard + 1}`}
                     </p>
                 </div>
 
