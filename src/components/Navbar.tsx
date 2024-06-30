@@ -19,7 +19,7 @@ const Navbar = () => {
     return (
         <div className='flex w-full h-[12vh] bg-zinc-800'>
             <div className='flex mx-10 w-full justify-between items-center'>
-                <h3 className=''>LOGO...</h3>
+                <h3 className=''></h3>
                 <div className="flex justify-center">
                     <ConnectButton
                         client={client}
