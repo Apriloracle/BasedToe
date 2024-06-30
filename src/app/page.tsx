@@ -10,10 +10,6 @@ export default function Home() {
       <div className="py-20 w-full">
         <Header />
         <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-0/3">
-            <WalletFuncs />
-            <Attest />
-          </div>
           <div className="w-full md:w-3/3">
             <TicTacToe />
           </div>
