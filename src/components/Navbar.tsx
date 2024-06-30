@@ -30,7 +30,12 @@ const Navbar = () => {
                         }}
                     />
                 </div>
-              
+                <div className="flex justify-center">
+                    <ConnectButton
+                        client={client}
+                        wallets={wallets2}
+                        
+                    />
                 </div>
             </div>
         </div>
