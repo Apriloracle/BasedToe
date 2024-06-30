@@ -1,13 +1,12 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useActiveAccount, useActiveWalletChain } from "thirdweb/react";
 import GameAttestations from './GameAttestations';
 import { EAS, SchemaEncoder } from "@ethereum-attestation-service/eas-sdk";
 import { ethers } from 'ethers';
 
 const TicTacToe = () => {
-    const [boards, setBoards] = useState([Array(9).fill(null), Array(9).fill(null), Array(9).fill(null)]);
-    const [currentBoard, setCurrentBoard] = useState(0);
+    const [board, setBoard] = useState(Array(9).fill(null));
     const [winner, setWinner] = useState<string | null>(null);
     const [gameOver, setGameOver] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -55,14 +54,13 @@ const TicTacToe = () => {
         return null;
     };
 
-    const createAttestation = async (boardIndex: number, cellIndex: number, player: 'X' | 'O') => {
+    const createAttestation = async (index: number, player: 'X' | 'O') => {
         try {
             setIsWaiting(true);
-            const schemaEncoder = new SchemaEncoder("uint256 boardIndex, uint256 cellIndex, string player, address player_address, string timestamp, string chainid");
+            const schemaEncoder = new SchemaEncoder("uint256 moveIndex, string player, address player_address, string timestamp, string chainid");
             const nowTime: string = new Date().toISOString();
             const encodedData = schemaEncoder.encodeData([
-                { name: "boardIndex", value: boardIndex, type: "uint256" },
-                { name: "cellIndex", value: cellIndex, type: "uint256" },
+                { name: "moveIndex", value: index, type: "uint256" },
                 { name: "player", value: player, type: "string" },
                 { name: "player_address", value: currentAddress, type: "address" },
                 { name: "timestamp", value: nowTime, type: "string" },
@@ -112,44 +110,43 @@ const TicTacToe = () => {
         return availableMoves[randomIndex];
     };
 
-    const handleClick = useCallback(async (boardIndex: number, cellIndex: number) => {
-        if (winner || boards[boardIndex][cellIndex] || gameOver || !currentAddress || boardIndex !== currentBoard) return;
+    const handleClick = useCallback(async (i: number) => {
+        if (winner || board[i] || gameOver || !currentAddress) return;
 
-        const newBoards = boards.map((board, index) => 
-            index === boardIndex ? board.map((cell, idx) => idx === cellIndex ? 'X' : cell) : board
-        );
-        setBoards(newBoards);
-        await createAttestation(boardIndex, cellIndex, 'X');
+        const newBoard = [...board];
+        newBoard[i] = 'X';
+        setBoard(newBoard);
+        await createAttestation(i, 'X');
 
-        const boardWinner = calculateWinner(newBoards[boardIndex]);
-        if (boardWinner) {
-            setWinner(boardWinner);
+        const playerWinner = calculateWinner(newBoard);
+        if (playerWinner) {
+            setWinner(playerWinner);
+            setGameOver(true);
+            return;
+        } else if (newBoard.every((square) => square !== null)) {
             setGameOver(true);
             return;
         }
 
         // Computer's turn
-        const nextBoard = (boardIndex + 1) % 3;
-        setCurrentBoard(nextBoard);
-        const computerMoveIndex = computerMove(newBoards[nextBoard]);
+        const computerMoveIndex = computerMove(newBoard);
         if (computerMoveIndex !== null) {
-            newBoards[nextBoard][computerMoveIndex] = 'O';
-            setBoards(newBoards);
-            await createAttestation(nextBoard, computerMoveIndex, 'O');
+            newBoard[computerMoveIndex] = 'O';
+            setBoard(newBoard);
+            await createAttestation(computerMoveIndex, 'O');
 
-            const computerWinner = calculateWinner(newBoards[nextBoard]);
+            const computerWinner = calculateWinner(newBoard);
             if (computerWinner) {
                 setWinner(computerWinner);
                 setGameOver(true);
+            } else if (newBoard.every((square) => square !== null)) {
+                setGameOver(true);
             }
         }
-
-        setCurrentBoard((nextBoard + 1) % 3);
-    }, [boards, winner, gameOver, currentAddress, currentBoard]);
+    }, [board, winner, gameOver, currentAddress]);
 
     const resetGame = () => {
-        setBoards([Array(9).fill(null), Array(9).fill(null), Array(9).fill(null)]);
-        setCurrentBoard(0);
+        setBoard(Array(9).fill(null));
         setWinner(null);
         setGameOver(false);
         setError(null);
@@ -159,36 +156,28 @@ const TicTacToe = () => {
         return <div className="flex justify-center items-center h-screen"></div>;
     }
 
-    const renderBoard = (boardIndex: number) => {
-        return (
-            <div key={boardIndex} className={`grid grid-cols-3 gap-2 mb-8 ${boardIndex === currentBoard ? 'border-4 border-blue-500' : ''}`}>
-                {boards[boardIndex].map((cell, cellIndex) => (
-                    <button
-                        key={cellIndex}
-                        onClick={() => handleClick(boardIndex, cellIndex)}
-                        className="w-16 h-16 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
-                        disabled={cell !== null || gameOver || isWaiting || boardIndex !== currentBoard}
-                    >
-                        {cell}
-                    </button>
-                ))}
-            </div>
-        );
-    };
-
     return (
         <div className="flex justify-center items-center min-h-screen bg-gray-100">
             <div className="text-center">
-                <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestations</h1>
+                <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestation</h1>
                 <p className="mb-4">Connected Address: {currentAddress}</p>
                 
-                <div className="flex flex-col items-center">
-                    {[0, 1, 2].map(boardIndex => renderBoard(boardIndex))}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                    {board.map((square, i) => (
+                        <button 
+                            key={i} 
+                            onClick={() => handleClick(i)}
+                            className="w-20 h-20 text-2xl font-bold bg-white hover:bg-gray-100 border border-gray-300"
+                            disabled={square !== null || gameOver || isWaiting}
+                        >
+                            {square}
+                        </button>
+                    ))}
                 </div>
                 
-                <div className="mb-4 mt-4">
+                <div className="mb-4">
                     <p>
-                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : `Your turn (X) on Board ${currentBoard + 1}`}
+                        {winner ? `Winner: ${winner}` : gameOver ? "Draw!" : "Your turn (X)"}
                     </p>
                 </div>
 
