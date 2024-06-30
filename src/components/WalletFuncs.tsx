@@ -15,14 +15,7 @@ const WalletFuncs = () => {
 
   return (
     <div>
-      {wallet ? (
-        <>
-          <div>Connected Wallet Address: {activeAccount?.address}</div>
-          {/* <div>Wallet Connected {wallet.id}</div> */}
-        </>
-      ) : (
-        <div></div>
-      )}
+  
     </div>
   )
 }
