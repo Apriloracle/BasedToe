@@ -157,7 +157,7 @@ const TicTacToe = () => {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-blue-100">
+        <div className="flex justify-center items-center min-h-screen bg-blue-600">
             <div className="text-center">
                 <h1 className="text-3xl font-bold mb-4">Tic Tac Toe + Attestations</h1>
                 <p className="mb-4">Connected Address: {currentAddress}</p>
