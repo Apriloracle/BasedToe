@@ -134,8 +134,8 @@ const TicTacToe = () => {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
-            <h1 className="text-3xl font-bold mb-4">Tic-Tac-Toe with Blockchain Attestation</h1>
-            <p className="mb-4">Connected Address: {currentAddress}</p>
+            <h1 className="text-3xl font-bold mb-4"></h1>
+            <p className="mb-4">Address: {currentAddress}</p>
             
             <div className="grid grid-cols-3 gap-2 mb-4">
                 {board.map((square, i) => (
