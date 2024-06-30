@@ -31,7 +31,6 @@ function Header() {
         alt=""
         className="size-[150px] md:size-[150px]"
         style={{
-          filter: "drop-shadow(0px 0px 24px #a726a9a8)",
         }}
       />
     </header>
